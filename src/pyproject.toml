@@ -1,0 +1,15 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rednix"
+version = "0.1.0"
+description = "Launcher for RedNix per-event MicroVMs"
+requires-python = ">=3.11"
+
+[project.scripts]
+rednix = "rednix.cli:main"
+
+[tool.setuptools]
+packages = ["rednix"]

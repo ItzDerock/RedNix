@@ -1,0 +1,7 @@
+# Placeholder guest public key.
+#
+# `rednix build` injects the real key from your state root with
+# `--override-input guestKey`, so this file never needs to change. It exists
+# only so `nix build .#guestRunner` evaluates standalone; built that way the
+# guest has no usable authorized key. Only replace this file if you build the
+# runner without the launcher.
