@@ -11,5 +11,10 @@
     ntfs3g
     sqlite
     recoverjpeg
+    steghide
+    zbar
+    yara
+    pngcheck
+    imagemagick
   ];
 }

@@ -32,10 +32,21 @@ microvm.interfaces = [{ type = "user"; id = "usernet"; mac = "02:00:00:00:00:01"
 
 - Guest gets DHCP `10.0.2.15/24`, gateway `10.0.2.2`, DNS `10.0.2.3`.
 - **Outbound only.** The guest is unreachable from the LAN.
+- QEMU SLiRP supplies the guest's DHCP address, DNS forwarding, and outbound IPv4 NAT automatically; no host
+  TAP device, IP forwarding, or nftables setup is needed. Check it after boot with
+  `rednix exec <event> -- ip route` and `rednix exec <event> -- curl -I https://example.com` (or use a known
+  event target if internet access is restricted). A successful SSH readiness check alone does not prove guest
+  outbound access.
 - `forwardPorts` binds SSH to `127.0.0.1` on the host:
   `microvm.forwardPorts = [{ from = "host"; host.address = "127.0.0.1"; host.port = 2222; guest.port = 22; }]`.
 - **Reverse shells into the guest do not work** in this profile — SLiRP has no inbound path beyond declared
   `hostfwd` entries. This is a genuine capability gap, and the reason the `routed` profile exists.
+
+For callbacks from the competition network, the `routed` profile requires host setup before VM start:
+`sudo rednix net up <event> --iface <ctf-interface>`, then
+`rednix start <event> --network routed`. It creates the event TAP device, enables IPv4 forwarding, and applies
+scoped nftables NAT/DNAT rules. Use `rednix net down <event>` after the event. Confirm with organizers that local
+VM NAT/routing is permitted before connecting it to their network.
 
 SSH port allocation is per-event: the launcher allocates a free port (default base 2222) and passes it as
 `-o hostfwd=tcp:127.0.0.1:<port>-:22` via `microvm.qemu.extraArgs`, so two events can run side-by-side with one
