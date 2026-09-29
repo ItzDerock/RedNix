@@ -188,6 +188,7 @@ docs/
   rehearsal checklist, and the automated offline acceptance test (A8).
 - [`docs/networking.md`](docs/networking.md) — the `nat` and `routed` profiles, the host nftables rules, the
   `rednix net` subcommands, and the CTF rules compliance caveat.
+- [`docs/field-guide/`](docs/field-guide/) — offline CTF playbooks, quick search UI, and a read-only file triage helper.
 - [`docs/hyprland-integration.md`](docs/hyprland-integration.md) — the Waypipe invocation, the `[RedNix]` window
   rule, `--xwls`, and the Hyprland permission system and its limits.
 - [`docs/state-design.md`](docs/state-design.md) — how the persistent volume and bind mounts work, and the

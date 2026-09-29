@@ -15,6 +15,7 @@
     ../tools/rev.nix
     ../tools/forensics.nix
     ../tools/crypto.nix
+    ../tools/field-guide.nix
   ];
 
   # Metasploit and a few other pentest tools are marked unfree in nixpkgs;

@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f1efe8">
+  <title>RedNix Field Manual</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar"><a class="wordmark" href="#top">REDNIX <span>/ FIELD MANUAL</span></a><span class="offline">LOCAL · OFFLINE</span></header>
+  <main id="top">
+    <section class="intro">
+      <p class="eyebrow">CTF QUICK REFERENCE</p>
+      <h1>Find the next<br><em>useful move.</em></h1>
+      <p class="lede">Short checks for the first minutes. Pick a lane, get evidence, share what you learn.</p>
+      <form id="search-form" role="search">
+        <label class="sr-only" for="query">Search the field manual</label>
+        <input id="query" type="search" placeholder="Try: how do I get a shell back?" autocomplete="off">
+        <button type="submit">Search <kbd>↵</kbd></button>
+      </form>
+      <div class="suggestions" aria-label="Quick searches">
+        <button data-query="callback shell listener">callback shell</button>
+        <button data-query="pcap packet capture">read a pcap</button>
+        <button data-query="image stego hidden data">hidden image data</button>
+      </div>
+    </section>
+    <section class="results-head"><h2 id="result-title">Quick playbooks</h2><span id="result-count">6 PLAYBOOKS</span></section>
+    <section id="results" class="results" aria-live="polite"></section>
+    <aside class="rule"><strong>Before you send traffic</strong><p>Check scope and event rules. NAT allows guest outbound traffic. Callbacks need a reachable listener and the right RedNix network mode.</p></aside>
+  </main>
+  <footer><span>Keep output. Share the finding. Submit confirmed flags fast.</span><a href="README.md">Read the full guide ↗</a></footer>
+  <script src="search.js"></script>
+</body>
+</html>
