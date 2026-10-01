@@ -11,6 +11,8 @@
     ./containers.nix
     ../tools/core.nix
     ../tools/net.nix
+    ../tools/tulip.nix
+    ../tools/exploitfarm.nix
     ../tools/exploit.nix
     ../tools/rev.nix
     ../tools/forensics.nix

@@ -189,6 +189,8 @@ docs/
 - [`docs/networking.md`](docs/networking.md) — the `nat` and `routed` profiles, the host nftables rules, the
   `rednix net` subcommands, and the CTF rules compliance caveat.
 - [`docs/field-guide/`](docs/field-guide/) — offline CTF playbooks, quick search UI, and a read-only file triage helper.
+- [`docs/tulip.md`](docs/tulip.md) — Tulip setup, remote PCAP capture and attack/defense traffic analysis.
+- [`docs/exploitfarm.md`](docs/exploitfarm.md) — ExploitFarm server setup, `xfarm` workers, and flag submission.
 - [`docs/hyprland-integration.md`](docs/hyprland-integration.md) — the Waypipe invocation, the `[RedNix]` window
   rule, `--xwls`, and the Hyprland permission system and its limits.
 - [`docs/state-design.md`](docs/state-design.md) — how the persistent volume and bind mounts work, and the

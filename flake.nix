@@ -49,6 +49,9 @@
     packages.${system} = {
       guestRunner = self.nixosConfigurations.rednix.config.microvm.runner.qemu;
 
+      tulip-ctf = (import ./pkgs/tulip { inherit pkgs; }).package;
+      exploitfarm = (import ./pkgs/exploitfarm { inherit pkgs; }).server;
+
       rednix = pkgs.python3Packages.buildPythonApplication {
         pname = "rednix";
         version = "0.1.0";
@@ -68,6 +71,11 @@
     apps.${system}.rednix = {
       type = "app";
       program = "${self.packages.${system}.rednix}/bin/rednix";
+    };
+
+    checks.${system} = {
+      tulip = import ./tests/integration/tulip.nix { inherit pkgs; };
+      exploitfarm = import ./tests/integration/exploitfarm.nix { inherit pkgs; };
     };
 
     # `nix develop` puts the launcher and every host-side dependency it execs

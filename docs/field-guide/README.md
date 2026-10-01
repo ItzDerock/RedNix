@@ -118,6 +118,16 @@ Use this only against an in-scope challenge target. Replace the address and port
 
 ## Attack/defense quick loop
 
+For remote capture and flow analysis, see the [Tulip mini guide](../tulip.md).
+In the guest, run `tulip init`, edit
+`/var/lib/rednix/tulip/{tulip.env,services.json}`, then `tulip start` and open
+`http://127.0.0.1:3000`. Capture on your defended box and pull completed PCAPs;
+Tulip imports them automatically.
+
+Use [ExploitFarm](../exploitfarm.md) to run reviewed exploits across the configured
+teams and submit flags: `exploitfarm start` starts its server on guest localhost
+5050, and `xfarm` creates/tests/runs exploit projects.
+
 1. Inventory service ports and health checks. Record the baseline.
 2. Find the flag path and how often flags rotate. Protect availability first.
 3. Reproduce one bug locally. Write a small check that proves it.
