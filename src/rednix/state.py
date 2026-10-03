@@ -8,6 +8,7 @@ import json
 import os
 import re
 import socket
+import tempfile
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Iterator
@@ -143,9 +144,51 @@ def all_events(config: Config) -> list[str]:
     return sorted(p.name for p in events_dir.iterdir() if p.is_dir())
 
 
+def read_default_event(config: Config) -> str | None:
+    try:
+        event = config.default_event_path.read_text(encoding="utf-8").strip()
+    except FileNotFoundError:
+        return None
+    except (OSError, UnicodeError) as exc:
+        raise StateError(f"cannot read {config.default_event_path}: {exc}") from exc
+    try:
+        return validate_event_name(event)
+    except StateError as exc:
+        raise StateError(
+            f"{config.default_event_path}: {exc}; reset with: rednix default --clear"
+        ) from exc
+
+
+def set_default_event(config: Config, event: str | None) -> None:
+    if event is not None:
+        validate_event_name(event)
+    try:
+        if event is None:
+            config.default_event_path.unlink(missing_ok=True)
+            return
+        config.state_root.mkdir(parents=True, exist_ok=True)
+        # Each writer gets its own temporary file; readers see a complete name.
+        with tempfile.NamedTemporaryFile(
+            mode="w", encoding="utf-8", dir=config.state_root,
+            prefix=".default-event-", delete=False,
+        ) as fp:
+            tmp = Path(fp.name)
+            try:
+                fp.write(event + "\n")
+                fp.close()
+                tmp.replace(config.default_event_path)
+            finally:
+                tmp.unlink(missing_ok=True)
+    except OSError as exc:
+        raise StateError(f"cannot update {config.default_event_path}: {exc}") from exc
+
+
 def default_event(config: Config, explicit: str | None = None) -> str:
     if explicit is not None:
         return validate_event_name(explicit)
+    selected = read_default_event(config)
+    if selected is not None:
+        return selected
     events = all_events(config)
     if not events:
         raise StateError(

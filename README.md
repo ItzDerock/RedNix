@@ -60,6 +60,7 @@ rednix doctor          # preflight: /dev/kvm, userns, UID match, free space, ZFS
 rednix build --pin     # nix build .#guestRunner; --pin writes a GC root
 rednix warm            # boot once, launch the toolset, msfdb init, exit
 rednix start <event>   # boot the per-event VM; allocates a free SSH port; symlinks work
+rednix default <event> # remember this event for subsequent commands
 rednix shell           # ssh into the guest (master connection)
 rednix gui             # searchable menu of installed GUI apps
 rednix gui --list      # show app names and guest launch commands
@@ -73,6 +74,25 @@ Run inside `nix develop` (or install the launcher) so every host-side dependency
 `vncviewer`, `nix`, `nft`, `ip`) is on PATH. `rednix build` runs `nix build .#guestRunner`; `--pin` additionally
 writes a GC root under `$STATE_ROOT/gcroots`. Run `rednix warm` once before the event so the first boot is not
 also the first download.
+
+Choose an event once to avoid repeating `--event` or positional event names:
+
+```sh
+rednix default my-ctf
+rednix gui
+rednix services exploitfarm
+rednix shell
+rednix exec -- id
+rednix default         # print the event commands will use
+rednix default --clear # return to automatic event selection
+```
+
+The selection persists across terminals and is scoped to the state root. An
+explicit event always overrides it for that command. You can select a new name
+before creating the event, then run `rednix build` and `rednix start` without an
+event argument. Commands with optional events use the saved choice; `build` and
+`warm` retain their original defaults when no choice is saved. Commands requiring
+an explicit event, such as `destroy`, `snapshot`, and `restore`, still require it.
 
 ### Apps and web services
 
@@ -98,7 +118,7 @@ are 5050 for ExploitFarm and 3000 for Tulip; a free nearby port is chosen if
 occupied. `--port` requests an exact host port for one service, and `--no-start`
 connects without starting services. All forwards bind to host localhost. Both
 commands honor `--state-root` and `REDNIX_STATE_ROOT`; `--event` selects a VM,
-otherwise the usual most recently started event is used. The GUI menu works
+otherwise the saved default (or the most recently started event) is used. The GUI menu works
 with an existing guest build. Rebuild the guest once for passwordless service
 startup; with an older guest, start the services in `rednix shell` and connect
 using `rednix services --no-start`.
@@ -118,6 +138,9 @@ The guest authorizes exactly one public key, and **nothing personal is committed
 
 ## Commands
 
+`rednix default [<event>]` shows or saves the default event. Use
+`rednix default --clear` to remove it. `rednix start` also accepts an omitted event.
+
 | Command                                                                                      | Behaviour                                                                                                                                                                                                                                                    |
 | -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `rednix init [--pubkey PATH]`                                                                | Create state root, config, keypair (or import the given one), ssh_config. Idempotent.                                                                                                                                                                        |
@@ -125,7 +148,7 @@ The guest authorizes exactly one public key, and **nothing personal is committed
 | `rednix build [<event>] [--pin]`                                                             | `nix build .#guestRunner`, injecting the state-root public key; with `--pin`, write a GC root; with `<event>`, link the runner into that event's directory.                                                                                                  |
 | `rednix warm [<event>]`                                                                      | Boot, launch the toolset, `msfdb init`, exit. Run once before the event.                                                                                                                                                                                     |
 | `rednix images [<event>]`                                                                    | List the preloaded docker images in the guest.                                                                                                                                                                                                               |
-| `rednix start <event> [--network nat\|routed] [--mem N] [--cpus N] [--share PATH] [--fresh]` | Create state root for the event if absent; allocate a free SSH port; symlink `work`; start `virtiofsd-run` in the background with `cwd` = event dir; exec `microvm-run` detached; wait for sshd; write `instance.json`. `--fresh` discards the volume first. |
+| `rednix start [<event>] [--network nat\|routed] [--mem N] [--cpus N] [--share PATH] [--fresh]` | Create state root for the event if absent; allocate a free SSH port; symlink `work`; start `virtiofsd-run` in the background with `cwd` = event dir; exec `microvm-run` detached; wait for sshd; write `instance.json`. `--fresh` discards the volume first. |
 | `rednix stop [<event>]`                                                                      | `current/bin/microvm-shutdown` (QMP ACPI powerdown), then terminate `virtiofsd-run`. Preserves the volume.                                                                                                                                                   |
 | `rednix destroy <event> [--purge-share] [--yes]`                                             | Stop, then `rm -rf $STATE_ROOT/events/<event>` and its GC root. **Never touches `share_root/<event>` unless `--purge-share`.**                                                                                                                               |
 | `rednix list` / `status [<event>]`                                                           | Enumerate events, bound ports, running state, disk usage.                                                                                                                                                                                                    |

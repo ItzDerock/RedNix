@@ -2,6 +2,28 @@
 
 How the guest's persistent volume and bind mounts work, and why.
 
+## Launcher default event
+
+`rednix default <event>` saves the selected name in `$STATE_ROOT/default-event`.
+The path is derived through `Config.default_event_path`. This is launcher state,
+kept separate from `config.toml` so setting it preserves configuration comments
+and settings without requiring a TOML writer. Writes use a unique temporary file
+and atomic replacement so concurrent readers never see a partial name.
+
+Event selection is an explicit argument first, then the saved choice, then the
+existing automatic selection of the most recently started event. `rednix default`
+prints that effective selection; `rednix default --clear` removes the saved choice.
+The selection follows the resolved state root, including configuration relocation.
+Only validated event names can be saved, and names may be selected before the
+event exists. Deleting an event does not silently select another event; choose a
+different default or clear the selection afterward.
+
+Commands that accept omitted events honor this choice. `build` still builds a
+global runner and `warm` still uses `warmup` when no choice is saved. `start` now
+accepts an omitted event. Commands requiring explicit events keep that interface.
+For `exec`, arguments after `--` are parsed separately so `rednix exec -- id`
+runs `id` in the selected event instead of interpreting it as an event name.
+
 ## Layout
 
 The guest root filesystem is tmpfs. Everything that must survive a reboot

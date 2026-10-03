@@ -14,8 +14,10 @@ from rednix.state import (
     event_lock,
     pid_alive,
     read_instance,
+    read_default_event,
     require_routable_name,
     share_dir_for,
+    set_default_event,
     socket_has_listener,
     validate_event_name,
     write_instance,
@@ -99,19 +101,58 @@ def test_event_lock_creates_file(tmp_path):
         assert (tmp_path / ".lock").exists()
 
 
-def test_all_events_and_default(tmp_path):
-    (tmp_path / "events" / "b-event").mkdir(parents=True)
-    (tmp_path / "events" / "a-event").mkdir()
-    (tmp_path / "events" / "notes.txt").write_text("x")
+def test_all_events_and_default(config):
+    (config.events_dir / "b-event").mkdir(parents=True)
+    (config.events_dir / "a-event").mkdir()
+    (config.events_dir / "notes.txt").write_text("x")
+    assert all_events(config) == ["a-event", "b-event"]
+    assert default_event(config) == "a-event"
 
-    class Cfg:
-        pass
 
-    cfg = Cfg()
-    cfg.events_dir = tmp_path / "events"
-    cfg.event_dir = lambda name: cfg.events_dir / name
-    assert all_events(cfg) == ["a-event", "b-event"]
-    assert default_event(cfg) == "a-event"
+def test_saved_default_overrides_latest_and_explicit_wins(config):
+    import os
+
+    for event, mtime in (("selected", 100), ("latest", 200)):
+        directory = config.event_dir(event)
+        directory.mkdir(parents=True)
+        write_instance(directory, {"event": event})
+        os.utime(directory / "instance.json", (mtime, mtime))
+    assert default_event(config) == "latest"
+    set_default_event(config, "selected")
+    assert default_event(config) == "selected"
+    assert default_event(config, "other") == "other"
+    assert read_default_event(config) == "selected"
+    set_default_event(config, None)
+    assert default_event(config) == "latest"
+    set_default_event(config, None)
+
+
+def test_default_can_be_selected_before_event_exists(config):
+    set_default_event(config, "new-event")
+    assert default_event(config) == "new-event"
+    assert not config.events_dir.exists()
+    assert not list(config.state_root.glob(".default-event-*"))
+
+
+def test_invalid_default_preserves_selection(config):
+    set_default_event(config, "ctf")
+    with pytest.raises(StateError, match="invalid event name"):
+        set_default_event(config, "../escape")
+    assert default_event(config) == "ctf"
+
+
+def test_corrupt_default_can_be_overridden_and_cleared(config):
+    config.default_event_path.write_text("../escape\n")
+    with pytest.raises(StateError, match="rednix default --clear"):
+        default_event(config)
+    assert default_event(config, "ctf") == "ctf"
+    set_default_event(config, None)
+    assert read_default_event(config) is None
+
+
+def test_no_events_without_default(config):
+    with pytest.raises(StateError, match="no events found"):
+        default_event(config)
 
 
 def test_share_dir_override(config):

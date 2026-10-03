@@ -68,6 +68,10 @@ class Config:
     def config_path(self) -> Path:
         return self.state_root / "config.toml"
 
+    @property
+    def default_event_path(self) -> Path:
+        return self.state_root / "default-event"
+
     def event_dir(self, event: str) -> Path:
         return self.events_dir / event
 

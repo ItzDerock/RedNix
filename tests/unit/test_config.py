@@ -73,4 +73,5 @@ def test_share_root_and_derived_paths(tmp_path):
     assert cfg.gcroots_dir == root / "gcroots"
     assert cfg.private_key == root / "keys" / "id_ed25519"
     assert cfg.ssh_config == root / "ssh_config"
+    assert cfg.default_event_path == root / "default-event"
     assert cfg.event_dir("ev") == root / "events" / "ev"

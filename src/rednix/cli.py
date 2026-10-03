@@ -10,7 +10,7 @@ from . import __version__, config as config_mod, doctor as doctor_mod, nix as ni
 from . import ssh as ssh_mod
 from . import vm as vm_mod
 from .config import ConfigError, Config, load_config
-from .state import StateError, all_events, default_event
+from .state import StateError, all_events, default_event, read_default_event, set_default_event
 
 
 def _fail(message: str) -> "NoReturn":
@@ -51,25 +51,39 @@ def cmd_doctor(args, config: Config) -> int:
     return 0 if ok else 1
 
 
+def cmd_default(args, config: Config) -> int:
+    if args.clear:
+        set_default_event(config, None)
+        print("default event cleared; using automatic event selection")
+    elif args.event is not None:
+        set_default_event(config, args.event)
+        print(f"default event: {args.event}")
+    else:
+        print(default_event(config))
+    return 0
+
+
 def cmd_build(args, config: Config) -> int:
-    nix_mod.build(config, event=args.event, pin=args.pin)
+    event = args.event if args.event is not None else read_default_event(config)
+    nix_mod.build(config, event=event, pin=args.pin)
     return 0
 
 
 def cmd_start(args, config: Config) -> int:
+    event = default_event(config, args.event)
     instance = vm_mod.start(
         config,
-        args.event,
+        event,
         network=args.network,
         mem=args.mem,
         cpus=args.cpus,
         share=args.share,
         fresh=args.fresh,
     )
-    print(f"event {args.event} is up (pid {instance['pid']})")
-    print(f"  ssh:  rednix shell {args.event}")
-    print(f"  gui:  rednix gui --event {args.event} (app menu)")
-    print(f"  web:  rednix services --event {args.event}")
+    print(f"event {event} is up (pid {instance['pid']})")
+    print(f"  ssh:  rednix shell {event}")
+    print(f"  gui:  rednix gui --event {event} (app menu)")
+    print(f"  web:  rednix services --event {event}")
     print(f"  port: {instance['ssh_port']} (127.0.0.1 -> guest :22)")
     return 0
 
@@ -220,7 +234,8 @@ def cmd_gc(args, config: Config) -> int:
 
 
 def cmd_warm(args, config: Config) -> int:
-    vm_mod.warm(config, args.event)
+    event = args.event if args.event is not None else read_default_event(config) or "warmup"
+    vm_mod.warm(config, event)
     return 0
 
 
@@ -252,13 +267,19 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--offline", action="store_true", help="assert no network expectations")
     p.set_defaults(func=cmd_doctor)
 
+    p = sub.add_parser("default", help="show, set, or clear the default event")
+    selection = p.add_mutually_exclusive_group()
+    selection.add_argument("event", nargs="?", help="event to use when no event is supplied")
+    selection.add_argument("--clear", action="store_true", help="return to automatic event selection")
+    p.set_defaults(func=cmd_default)
+
     p = sub.add_parser("build", help="build the guest runner (nix build .#guestRunner)")
     p.add_argument("event", nargs="?", help="build into this event's state directory")
     p.add_argument("--pin", action="store_true", help="pin the runner under $STATE_ROOT/gcroots")
     p.set_defaults(func=cmd_build)
 
     p = sub.add_parser("warm", help="boot once and run first-boot initialization")
-    p.add_argument("event", nargs="?", default="warmup")
+    p.add_argument("event", nargs="?")
     p.set_defaults(func=cmd_warm)
 
     p = sub.add_parser("images", help="list preloaded docker images in the guest")
@@ -266,7 +287,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.set_defaults(func=cmd_images)
 
     p = sub.add_parser("start", help="create/resume an event VM")
-    p.add_argument("event")
+    p.add_argument("event", nargs="?")
     p.add_argument("--network", choices=config_mod.NETWORK_PROFILES)
     p.add_argument("--mem", type=int, help="override guest RAM in MiB")
     p.add_argument("--cpus", type=int, help="override guest vCPUs")
@@ -382,7 +403,14 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
+    argv = sys.argv[1:] if argv is None else argv
     args = parser.parse_args(argv)
+    if args.func is cmd_exec and "--" in argv:
+        # Parse only launcher arguments before the separator so the remote
+        # executable is not mistaken for the optional positional event.
+        separator = argv.index("--")
+        args = parser.parse_args(argv[:separator])
+        args.command = argv[separator + 1:]
     try:
         config = load_config(args.state_root)
     except ConfigError as exc:
