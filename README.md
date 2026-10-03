@@ -1,5 +1,9 @@
 # RedNix
 
+> [!NOTE]
+> THIS IS AI CODE BTW, I DONT HAVE TIME TO WRITE A GOOD README
+> vibed this up for an upcoming ctf & AD event!
+
 A per-CTF disposable NixOS MicroVM pentesting workbench. RedNix replaces "run Metasploit on my host" with a
 disposable, per-competition NixOS MicroVM that:
 
@@ -57,7 +61,9 @@ rednix build --pin     # nix build .#guestRunner; --pin writes a GC root
 rednix warm            # boot once, launch the toolset, msfdb init, exit
 rednix start <event>   # boot the per-event VM; allocates a free SSH port; symlinks work
 rednix shell           # ssh into the guest (master connection)
-rednix gui <prog>      # forward a single GUI window via Waypipe
+rednix gui             # searchable menu of installed GUI apps
+rednix gui --list      # show app names and guest launch commands
+rednix services        # start a web service and tunnel it to your host browser
 rednix desktop         # floating labwc + wayvnc fallback for apps that refuse Waypipe
 rednix stop            # microvm-shutdown (QMP ACPI) + terminate virtiofsd; preserves the volume
 rednix destroy <event> # delete VM state; never touches share_root/<event>
@@ -67,6 +73,35 @@ Run inside `nix develop` (or install the launcher) so every host-side dependency
 `vncviewer`, `nix`, `nft`, `ip`) is on PATH. `rednix build` runs `nix build .#guestRunner`; `--pin` additionally
 writes a GC root under `$STATE_ROOT/gcroots`. Run `rednix warm` once before the event so the first boot is not
 also the first download.
+
+### Apps and web services
+
+With a VM running, `rednix gui` opens a terminal picker: type to search by app
+name or command, use the arrow keys, and press Enter to launch. Escape cancels.
+The menu discovers apps in the guest and selects X11 forwarding for tools such
+as Ghidra and Burp. `rednix gui --list` prints the available apps and commands;
+explicit commands such as `rednix gui --xwls ghidra` still work.
+
+`rednix services` opens a service picker. You can also connect directly:
+
+```sh
+rednix services --list                         # supported services and guest ports
+rednix services --event EVENT exploitfarm      # start ExploitFarm and forward its UI
+rednix services --event EVENT tulip            # start Tulip and forward its UI
+rednix services --event EVENT all              # both UIs in one tunnel
+rednix services --event EVENT --port 8050 exploitfarm
+```
+
+Open the printed URLs in your host browser. Keep the command running; Ctrl+C
+closes its tunnels and leaves the guest services running. Default host ports
+are 5050 for ExploitFarm and 3000 for Tulip; a free nearby port is chosen if
+occupied. `--port` requests an exact host port for one service, and `--no-start`
+connects without starting services. All forwards bind to host localhost. Both
+commands honor `--state-root` and `REDNIX_STATE_ROOT`; `--event` selects a VM,
+otherwise the usual most recently started event is used. The GUI menu works
+with an existing guest build. Rebuild the guest once for passwordless service
+startup; with an older guest, start the services in `rednix shell` and connect
+using `rednix services --no-start`.
 
 ## SSH keys
 
@@ -97,7 +132,8 @@ The guest authorizes exactly one public key, and **nothing personal is committed
 | `rednix shell [<event>]`                                                                     | `ssh` (master connection).                                                                                                                                                                                                                                   |
 | `rednix exec [<event>] -- <cmd…>`                                                            | Non-interactive `ssh`.                                                                                                                                                                                                                                       |
 | `rednix fhs [<event>]`                                                                       | `ssh -t` running `fhs`.                                                                                                                                                                                                                                      |
-| `rednix gui [--event <event>] [--xwls] <program> [args…]`                                    | `waypipe --no-gpu --title-prefix "[RedNix] " ssh … -- <program>`; `--xwls` routes X11 clients through xwayland-satellite.                                                                                                                                    |
+| `rednix gui [--event <event>] [--list] [--xwls] [<program> [args…]]`                         | Searchable installed-app menu when no program is supplied; `--list` prints apps. Explicit programs use Waypipe; `--xwls` routes X11 clients through xwayland-satellite. |
+| `rednix services [--event <event>] [--list] [--port N] [--no-start] [SERVICE…]`               | Pick or name `exploitfarm`, `tulip`, or `all`; start services and forward their UIs to host localhost until Ctrl+C. |
 | `rednix desktop [<event>] [--port N] [--stop]`                                               | SSH tunnel + start/reconnect the floating labwc session (wayvnc on 127.0.0.1:5901) + local viewer.                                                                                                                                                           |
 | `rednix logs [<event>] [-f]`                                                                 | Tail `vm.log`.                                                                                                                                                                                                                                               |
 | `rednix snapshot <event> <name>` / `rednix restore <event> <name>`                           | Copy/restore `state.img` as a restore point.                                                                                                                                                                                                                 |
@@ -190,7 +226,8 @@ docs/
   `rednix net` subcommands, and the CTF rules compliance caveat.
 - [`docs/field-guide/`](docs/field-guide/) — offline CTF playbooks, quick search UI, and a read-only file triage helper.
 - [`docs/tulip.md`](docs/tulip.md) — Tulip setup, remote PCAP capture and attack/defense traffic analysis.
-- [`docs/exploitfarm.md`](docs/exploitfarm.md) — ExploitFarm server setup, `xfarm` workers, and flag submission.
+- [`docs/exploitfarm.md`](docs/exploitfarm.md) — host port forwarding, ExploitFarm event setup, `xfarm` workers, flag submission, and troubleshooting.
+- [`examples/exploitfarm/`](examples/exploitfarm/README.md) — standalone exploit starters for HTTP vulnerabilities, TCP protocols, and ret2win.
 - [`docs/hyprland-integration.md`](docs/hyprland-integration.md) — the Waypipe invocation, the `[RedNix]` window
   rule, `--xwls`, and the Hyprland permission system and its limits.
 - [`docs/state-design.md`](docs/state-design.md) — how the persistent volume and bind mounts work, and the

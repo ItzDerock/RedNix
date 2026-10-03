@@ -42,6 +42,25 @@ def test_gui_xwls():
     assert args.xwls is True
 
 
+def test_gui_menu_and_list():
+    assert _parse(["gui"]).program is None
+    args = _parse(["gui", "--event", "ctf", "--list"])
+    assert args.list and args.event == "ctf" and args.program is None
+
+
+def test_services_menu_and_named_tunnels():
+    assert _parse(["services"]).services == []
+    args = _parse(["services", "exploitfarm", "--event", "ctf", "--port", "8050"])
+    assert args.services == ["exploitfarm"]
+    assert args.port == 8050 and args.event == "ctf"
+    assert _parse(["services", "--no-start", "all"]).no_start
+
+
+def test_service_list_needs_no_event(config, capsys):
+    assert cli.cmd_services(_parse(["services", "--list"]), config) == 0
+    assert "exploitfarm" in capsys.readouterr().out
+
+
 def test_exec_remainder():
     # argparse strips the "--" separator; ssh.run re-adds it for the remote side
     args = _parse(["exec", "ctf", "--", "id", "-u"])
@@ -67,6 +86,6 @@ def test_every_subcommand_registered():
     for command in (
         "init", "doctor", "build", "warm", "images", "start", "stop", "destroy",
         "list", "status", "shell", "exec", "fhs", "gui", "desktop", "logs",
-        "snapshot", "restore", "gc", "net",
+        "snapshot", "restore", "gc", "net", "services",
     ):
         assert command in choices, command

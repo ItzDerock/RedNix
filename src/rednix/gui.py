@@ -16,8 +16,8 @@
 ``rednix desktop`` is the fallback for tools that refuse to run under Waypipe:
 an SSH tunnel to the guest's VNC server (guest-side 127.0.0.1:5901, wayvnc
 serving a headless labwc session), the on-demand guest session
-(``rednix-desktop.service``, the one unit the guest user may start with
-NOPASSWD sudo), and a local viewer. Closing the viewer leaves the guest
+(``rednix-desktop.service``, started through scoped NOPASSWD sudo), and a
+local viewer. Closing the viewer leaves the guest
 session running, so the next ``rednix desktop`` reconnects.
 """
 

@@ -12,7 +12,7 @@ pkgs.testers.runNixOSTest {
       group = "rednix";
       extraGroups = [ "wheel" ];
     };
-    security.sudo.wheelNeedsPassword = false;
+    security.sudo.wheelNeedsPassword = true;
     networking.useDHCP = false;
     services.postgresql = {
       enable = true;
@@ -34,6 +34,7 @@ pkgs.testers.runNixOSTest {
     machine.wait_for_unit("postgresql.service")
     machine.succeed("ip link set eth0 down")
     machine.fail("systemctl is-active rednix-tulip.target")
+    machine.fail("su - rednix -c 'sudo -n true'")
     machine.succeed("su - rednix -c 'tulip init'")
     machine.succeed("""echo '[{"ip":"10.60.4.1","port":8080,"name":"Shop"}]' > /var/lib/rednix/tulip/services.json""")
     machine.succeed("su - rednix -c 'tulip start'")

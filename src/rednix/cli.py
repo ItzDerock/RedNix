@@ -68,7 +68,8 @@ def cmd_start(args, config: Config) -> int:
     )
     print(f"event {args.event} is up (pid {instance['pid']})")
     print(f"  ssh:  rednix shell {args.event}")
-    print(f"  gui:  rednix gui --event {args.event} <program>")
+    print(f"  gui:  rednix gui --event {args.event} (app menu)")
+    print(f"  web:  rednix services --event {args.event}")
     print(f"  port: {instance['ssh_port']} (127.0.0.1 -> guest :22)")
     return 0
 
@@ -130,11 +131,28 @@ def cmd_fhs(args, config: Config) -> int:
 def cmd_gui(args, config: Config) -> int:
     from . import gui as gui_mod
 
-    if not args.program:
-        _fail("gui requires a program name")
+    if args.list and args.program:
+        _fail("gui --list does not take a program")
     event = default_event(config, args.event)
     ssh_mod.write_ssh_config(config)
+    if not args.program:
+        from . import apps
+
+        return apps.launch(config, event, list_only=args.list, xwls=args.xwls)
     return gui_mod.gui(config, event, args.program, args.args, xwls=args.xwls)
+
+
+def cmd_services(args, config: Config) -> int:
+    from . import services
+
+    if args.list:
+        for service in services.SERVICES:
+            print(f"{service.name:<14} guest :{service.port:<5}  {service.title}")
+        return 0
+    event = default_event(config, args.event)
+    ssh_mod.write_ssh_config(config)
+    return services.run(config, event, args.services, local_port=args.port,
+                        start=not args.no_start)
 
 
 def cmd_desktop(args, config: Config) -> int:
@@ -286,13 +304,22 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("event", nargs="?")
     p.set_defaults(func=cmd_fhs)
 
-    p = sub.add_parser("gui", help="forward a program's window via Waypipe")
+    p = sub.add_parser("gui", help="pick a GUI app or forward a program's window via Waypipe")
     p.add_argument("--event")
+    p.add_argument("--list", action="store_true", help="list GUI apps installed in the running guest")
     p.add_argument("--xwls", action="store_true", help="use xwayland-satellite for X11 clients")
-    p.add_argument("program")
+    p.add_argument("program", nargs="?", help="guest program; omit to open the app menu")
     p.add_argument("args", nargs=argparse.REMAINDER,
                    help="arguments passed verbatim to the guest program")
     p.set_defaults(func=cmd_gui)
+
+    p = sub.add_parser("services", help="pick web services and tunnel them to your host browser")
+    p.add_argument("--event")
+    p.add_argument("--list", action="store_true", help="list supported services (no VM required)")
+    p.add_argument("--port", type=int, help="host port override for a single service")
+    p.add_argument("--no-start", action="store_true", help="tunnel services without starting them")
+    p.add_argument("services", nargs="*", metavar="SERVICE", help="exploitfarm, tulip, or all; omit for menu")
+    p.set_defaults(func=cmd_services)
 
     p = sub.add_parser("desktop", help="open the fallback VNC desktop")
     p.add_argument("event", nargs="?")

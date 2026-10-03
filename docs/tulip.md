@@ -49,6 +49,11 @@ Start the stack:
 tulip start
 ```
 
+For automatic startup and a host browser tunnel, run
+`rednix services --event EVENT tulip` on the host and open the printed URL.
+Keep the command running; Ctrl+C closes the tunnel and leaves Tulip running.
+Use `rednix services all` to connect both Tulip and ExploitFarm.
+
 Open `http://127.0.0.1:3000` in a guest browser (`rednix gui --event EVENT firefox`
 from the host), or tunnel the UI to your **host browser**:
 

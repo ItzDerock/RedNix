@@ -58,6 +58,7 @@
         src = ./src;
         pyproject = true;
         build-system = [ pkgs.python3Packages.setuptools ];
+        pythonImportsCheck = [ "rednix.cli" "rednix.apps" "rednix.services" ];
         meta = {
           mainProgram = "rednix";
           description = "Launcher for RedNix per-event MicroVMs";

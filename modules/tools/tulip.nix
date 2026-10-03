@@ -65,9 +65,9 @@ in {
     text = ''
       case "''${1:-help}" in
         # Use NixOS's setuid wrapper, rather than the raw store sudo binary.
-        init) /run/wrappers/bin/sudo systemctl start rednix-tulip-init.service ;;
+        init) /run/wrappers/bin/sudo -n /run/current-system/sw/bin/systemctl start rednix-tulip-init.service ;;
         start)
-          /run/wrappers/bin/sudo systemctl start rednix-tulip.target
+          /run/wrappers/bin/sudo -n /run/current-system/sw/bin/systemctl start rednix-tulip.target
           for _ in $(seq 1 60); do
             if curl --fail --silent --max-time 2 http://127.0.0.1:3000/api/tags >/dev/null; then
               echo "Tulip: http://127.0.0.1:3000 (guest localhost)"
@@ -75,17 +75,28 @@ in {
             fi
             sleep 1
           done
-          /run/wrappers/bin/sudo journalctl -n 40 --no-pager -u 'rednix-tulip-*'
+          /run/wrappers/bin/sudo -n /run/current-system/sw/bin/journalctl -n 40 --no-pager -u 'rednix-tulip-*'
           echo "Tulip did not become ready; inspect tulip logs." >&2
           exit 1
           ;;
-        stop) /run/wrappers/bin/sudo systemctl stop rednix-tulip.target ;;
+        stop) /run/wrappers/bin/sudo -n /run/current-system/sw/bin/systemctl stop rednix-tulip.target ;;
         status) systemctl status ${lib.concatStringsSep " " units} ;;
-        logs) /run/wrappers/bin/sudo journalctl -f -u 'rednix-tulip-*' ;;
+        logs) /run/wrappers/bin/sudo -n /run/current-system/sw/bin/journalctl -f -u 'rednix-tulip-*' ;;
         *) echo "Usage: tulip {init|start|stop|status|logs}" ;;
       esac
     '';
   }) ];
+
+  security.sudo.extraRules = [{
+    users = [ "rednix" ];
+    commands = map (command: { inherit command; options = [ "NOPASSWD" ]; }) [
+      "/run/current-system/sw/bin/systemctl start rednix-tulip-init.service"
+      "/run/current-system/sw/bin/systemctl start rednix-tulip.target"
+      "/run/current-system/sw/bin/systemctl stop rednix-tulip.target"
+      "/run/current-system/sw/bin/journalctl -n 40 --no-pager -u rednix-tulip-*"
+      "/run/current-system/sw/bin/journalctl -f -u rednix-tulip-*"
+    ];
+  }];
 
   # Reuse the persistent PostgreSQL cluster already used by Metasploit.
   services.postgresql = {

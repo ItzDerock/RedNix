@@ -183,7 +183,7 @@ in
   };
 
   # The guest user must be able to raise/lower the desktop on demand without a
-  # root shell; this is the only privileged operation granted to the guest user.
+  # root shell; tool service modules grant their own service operations separately.
   security.sudo.extraRules = [
     {
       users = [ "rednix" ];
